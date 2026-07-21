@@ -1,6 +1,6 @@
 import numpy as np
 from collections import defaultdict, Counter
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 import random
 import itertools
 import copy
@@ -17,9 +17,15 @@ import json
 class Scheduler_Final:
     """最终版调度器：使用非线性惩罚机制确保大课程的最小学生数"""
     
-    def __init__(self, num_time_slots=7, max_iterations=15000):  # 增加迭代次数
+    def __init__(
+        self,
+        num_time_slots=7,
+        max_iterations=15000,
+        cancel_check: Optional[Callable[[], bool]] = None,
+    ):  # 增加迭代次数
         self.num_time_slots = num_time_slots
         self.max_iterations = max_iterations
+        self.cancel_check = cancel_check
         
         # --- 成本函数权重 (优化版) ---
         self.W_CONFLICT = 5000.0
@@ -173,6 +179,9 @@ class Scheduler_Final:
 
     def optimize_schedule(self) -> Dict[str, int]:
         print("\n⚡ 开始优化 (最终均衡版 + 非线性惩罚机制)...")
+
+        if self.cancel_check and self.cancel_check():
+            raise RuntimeError("Scheduling was cancelled.")
         
         best_schedule = self._initial_schedule()
         best_cost, _ = self._evaluate_schedule_with_balance(best_schedule)
@@ -185,6 +194,8 @@ class Scheduler_Final:
         no_improvement_count = 0
         
         for iteration in range(self.max_iterations):
+            if self.cancel_check and self.cancel_check():
+                raise RuntimeError("Scheduling was cancelled.")
             neighbor = self._generate_neighbor(current_schedule)
             
             schedule_tuple = tuple(sorted(neighbor.items()))
@@ -896,6 +907,7 @@ def arrange_courses(
     include_section_loads: bool = True,
     include_diagnostics: bool = False,
     verbose: bool = False,
+    cancel_check: Optional[Callable[[], bool]] = None,
 ) -> Dict[str, Any]:
     """OpenAI tool handler for generating a course timetable.
 
@@ -916,7 +928,11 @@ def arrange_courses(
     custom_sections = _normalize_section_counts(section_counts)
     _validate_course_coverage(student_data, custom_sections, course_name_map)
 
-    scheduler = Scheduler_Final(num_time_slots=num_time_slots, max_iterations=max_iterations)
+    scheduler = Scheduler_Final(
+        num_time_slots=num_time_slots,
+        max_iterations=max_iterations,
+        cancel_check=cancel_check,
+    )
     _apply_scheduler_inputs(
         scheduler,
         block_ban_map=block_ban_map if block_ban_map is not None else {},

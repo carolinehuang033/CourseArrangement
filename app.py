@@ -418,6 +418,16 @@ body {
   border-color: #e5e7eb !important;
 }
 
+#advanced_panel.generating,
+#results_panel.generating,
+#advanced_panel .generating,
+#results_panel .generating {
+  animation: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
 /* Gradio 6.x auto-wraps each Group/Row in a .styler div with a default
    light-gray background (rgb(228, 228, 231) / #e4e4e7). Neutralize it inside
    the panels we custom-style, so the gray fill doesn't bleed through. */
@@ -1082,6 +1092,29 @@ def _show_idle_buttons() -> Tuple[Any, Any]:
     return gr.update(visible=True), gr.update(visible=False)
 
 
+def _stop_running(
+    chat_history: Optional[List[Dict[str, str]]],
+) -> Tuple[Any, Any, Any, Any]:
+    history = list(chat_history or _initial_history())
+    stopped_message = "当前操作已终止。"
+    if history and history[-1].get("role") == "assistant":
+        content = history[-1].get("content")
+        if content == TYPING_MESSAGE or (
+            isinstance(content, str) and "system-progress" in content
+        ):
+            history[-1]["content"] = stopped_message
+        elif content != stopped_message:
+            history.append({"role": "assistant", "content": stopped_message})
+    else:
+        history.append({"role": "assistant", "content": stopped_message})
+    return (
+        history,
+        history,
+        gr.update(visible=True),
+        gr.update(visible=False),
+    )
+
+
 def respond(
     user_message: str,
     chat_history: Optional[List[Dict[str, str]]],
@@ -1639,9 +1672,9 @@ def build_app() -> gr.Blocks:
             queue=False,
         )
         stop_button.click(
-            _show_idle_buttons,
-            inputs=[],
-            outputs=[send_button, stop_button],
+            _stop_running,
+            inputs=[chat_state],
+            outputs=[chatbot, chat_state, send_button, stop_button],
             cancels=[send_event, submit_event],
             queue=False,
         )

@@ -418,7 +418,12 @@ def _run_candidate_schedules(
                 candidate_seed = base_seed + round_index * request.candidate_runs + candidate_index
 
             result = arrange_courses(
-                **_schedule_request_to_tool_kwargs(request, seed=candidate_seed)
+                **_schedule_request_to_tool_kwargs(request, seed=candidate_seed),
+                cancel_check=(
+                    None
+                    if context is None
+                    else lambda: context.cancel_requested
+                ),
             )
             candidate = {
                 "round": round_index + 1,
