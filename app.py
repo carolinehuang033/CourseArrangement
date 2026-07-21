@@ -1664,7 +1664,13 @@ demo = build_app()
 
 if __name__ == "__main__":
     launch_options: Dict[str, Any] = {"css": APP_CSS}
-    if not os.getenv("SPACE_ID"):
+    deployment_port = os.getenv("PORT")
+    if deployment_port:
+        launch_options.update(
+            server_name="0.0.0.0",
+            server_port=int(deployment_port),
+        )
+    elif not os.getenv("SPACE_ID"):
         launch_options.update(
             server_name="127.0.0.1",
             server_port=_find_available_port(),
