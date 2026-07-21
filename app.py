@@ -1439,6 +1439,7 @@ def respond(
     worker = threading.Thread(target=_run_scheduler, daemon=True)
     worker.start()
     displayed_seconds = 0
+    displayed_stage = workflow_context.stage
     try:
         _set_status(
             history,
@@ -1446,13 +1447,21 @@ def respond(
         )
         yield _output(history, memory=memory)
         while not scheduler_state["done"] or (time.monotonic() - started_at) < 1.2:
-            time.sleep(1)
-            displayed_seconds += 1
+            time.sleep(0.2)
+            elapsed_seconds = int(time.monotonic() - started_at)
+            current_stage = workflow_context.stage
+            if (
+                elapsed_seconds == displayed_seconds
+                and current_stage == displayed_stage
+            ):
+                continue
+            displayed_seconds = elapsed_seconds
+            displayed_stage = current_stage
             _set_status(
                 history,
                 _system_progress_message(
                     displayed_seconds,
-                    stage=workflow_context.stage,
+                    stage=current_stage,
                 ),
             )
             yield _output(history, memory=memory)
@@ -1472,7 +1481,11 @@ def respond(
 
     _set_status(
         history,
-        _system_progress_message(displayed_seconds, stage=workflow_context.stage, done=True),
+        _system_progress_message(
+            time.monotonic() - started_at,
+            stage=workflow_context.stage,
+            done=True,
+        ),
     )
     yield _output(history, memory=memory)
 

@@ -597,6 +597,7 @@ def build_course_handoff_agents(
 
     scheduler_handoff = handoff(
         scheduler,
+        tool_name_override="transfer_to_course_generator",
         on_handoff=_on_scheduler_handoff,
         input_type=SchedulingIntent,
     )
