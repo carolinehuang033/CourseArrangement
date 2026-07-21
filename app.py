@@ -418,12 +418,9 @@ body {
   border-color: #e5e7eb !important;
 }
 
-#advanced_panel.generating,
-#results_panel.generating,
-#advanced_panel .generating,
-#results_panel .generating {
+.gradio-container .generating {
   animation: none !important;
-  border-color: transparent !important;
+  border: 0 !important;
   box-shadow: none !important;
   background: transparent !important;
 }
