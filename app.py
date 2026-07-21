@@ -45,11 +45,11 @@ CONFIRM_NEGATIVE_PATTERN = re.compile(
 )
 
 WELCOME_MESSAGE = (
-    "你好，我是 Course Arrangement Agent。我会先把排课需求问清楚，再帮你生成课表。\n\n"
-    "请先上传学生选课表，然后告诉我：每门课开几个班、总共有几个 time slots、哪些课程不能同 slot、"
-    "哪些课程不能放在指定 slot，以及每个 section 的人数限制。高级设置里目前默认是："
-    "Time slots=5，Seed=42，班级最小人数=12，班级最大人数=30，Max iterations=20000。\n\n"
-    "等信息完整后，我会先汇总所有设置，请你回复“确认运行”后才会真正开始排课。"
+    "您好，欢迎使用智能排课系统。我将协助您核对排课需求，并在确认后生成课程安排。\n\n"
+    "请先上传学生选课表，并提供以下信息：各课程的开班数量、排课时段总数、不可安排在同一时段的"
+    "课程组合、指定课程的禁排时段，以及各班人数限制。高级设置的默认值为：排课时段数 5、"
+    "随机种子 42、班级最小人数 12、班级最大人数 30、最大迭代次数 20000。\n\n"
+    "信息完整后，系统将汇总全部设置；请您核对并回复“确认运行”，随后正式开始排课。"
 )
 TYPING_MESSAGE = '<span class="typing-dots"><span></span><span></span><span></span></span>'
 
@@ -603,11 +603,11 @@ def _confirmation_message(
         f"上传文件：{os.path.basename(file_path)}\n"
         f"学生数量：{len(parsed_file.student_courses)}\n"
         f"课程数量：{len(selected_courses)}\n"
-        f"Time slots：{int(slots)}\n"
-        f"Seed：{seed_text}\n"
+        f"排课时段数：{int(slots)}\n"
+        f"随机种子：{seed_text}\n"
         f"班级最小人数：{int(class_floor)}\n"
         f"班级最大人数：{int(class_cap)}\n"
-        f"Max iterations：{int(max_iterations)}\n\n"
+        f"最大迭代次数：{int(max_iterations)}\n\n"
         "课程分班数：\n"
         f"{_format_section_counts(section_counts or _parse_section_counts(_user_message_text(messages)))}\n\n"
         "对话里提到的禁排规则、课程组合和其他偏好均已记录。\n\n"
@@ -800,14 +800,14 @@ def _summary(run_result: Any) -> str:
 
 def _progress_stage(stage: str) -> Tuple[str, str]:
     stages = {
-        "conversation": ("启动工作流", "Conversation Agent 正在转交任务"),
-        "orchestrator": ("结构化需求", "Orchestrator 正在提取排课约束"),
-        "scheduler": ("准备工具", "Scheduler 已接收结构化需求"),
+        "conversation": ("启动任务", "正在核对并转交排课需求"),
+        "orchestrator": ("整理需求", "正在提取并校验排课约束"),
+        "scheduler": ("准备排课", "已接收结构化排课需求"),
         "tool": ("生成候选", "排课工具正在搜索可用方案"),
-        "summary": ("整理结果", "Scheduler 正在汇总候选指标"),
+        "summary": ("整理结果", "正在汇总候选方案指标"),
         "completed": ("课表生成完成", "正在展示结果"),
     }
-    return stages.get(stage, ("处理请求", "Agent 工作流运行中"))
+    return stages.get(stage, ("处理请求", "排课流程正在运行"))
 
 
 def _system_progress_message(
@@ -820,11 +820,11 @@ def _system_progress_message(
     if done:
         title = "课表生成完成"
         detail = "正在整理结果"
-        meta = f"{elapsed}s"
+        meta = f"{elapsed} 秒"
         bar = ""
     else:
         title, detail = _progress_stage(stage)
-        meta = f"{elapsed}s · {stage}"
+        meta = f"{elapsed} 秒"
         bar = '<div class="system-progress-track"><div class="system-progress-bar"></div></div>'
 
     return (
@@ -1380,6 +1380,7 @@ def respond(
     started_at = time.monotonic()
     worker = threading.Thread(target=_run_scheduler, daemon=True)
     worker.start()
+    displayed_seconds = 0
     try:
         _set_status(
             history,
@@ -1387,12 +1388,12 @@ def respond(
         )
         yield _output(history, memory=memory)
         while not scheduler_state["done"] or (time.monotonic() - started_at) < 1.2:
-            delay = 0.5 if (time.monotonic() - started_at) < 1.2 else 2
-            time.sleep(delay)
+            time.sleep(1)
+            displayed_seconds += 1
             _set_status(
                 history,
                 _system_progress_message(
-                    time.monotonic() - started_at,
+                    displayed_seconds,
                     stage=workflow_context.stage,
                 ),
             )
@@ -1403,7 +1404,6 @@ def respond(
             print("[cancel] Scheduling cancellation requested", flush=True)
 
     worker.join(timeout=0)
-    elapsed = time.monotonic() - started_at
 
     if scheduler_state["error"] is not None:
         exc = scheduler_state["error"]
@@ -1414,7 +1414,7 @@ def respond(
 
     _set_status(
         history,
-        _system_progress_message(elapsed, stage=workflow_context.stage, done=True),
+        _system_progress_message(displayed_seconds, stage=workflow_context.stage, done=True),
     )
     yield _output(history, memory=memory)
 
@@ -1528,15 +1528,15 @@ def build_app() -> gr.Blocks:
 
             with gr.Accordion("高级设置", open=False, elem_id="advanced_panel"):
                 with gr.Row():
-                    slots = gr.Slider(2, 12, value=5, step=1, label="Time slots")
-                    seed = gr.Number(value=42, precision=0, label="Seed")
+                    slots = gr.Slider(2, 12, value=5, step=1, label="排课时段数")
+                    seed = gr.Number(value=42, precision=0, label="随机种子")
                     max_iterations = gr.Number(
                         value=20000,
                         precision=0,
                         minimum=100,
                         maximum=100000,
                         step=100,
-                        label="Max iterations",
+                        label="最大迭代次数",
                     )
                 with gr.Row():
                     class_floor = gr.Number(value=12, precision=0, label="班级最小人数")
