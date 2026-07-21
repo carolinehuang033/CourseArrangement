@@ -1388,7 +1388,7 @@ def respond(
         "min_students_per_section": int(class_floor),
         "max_students_per_section": int(class_cap),
         "max_iterations": int(max_iterations),
-        "candidate_runs": 1,
+        "candidate_runs": 2,
         "include_schedule": True,
         "include_section_loads": True,
     }

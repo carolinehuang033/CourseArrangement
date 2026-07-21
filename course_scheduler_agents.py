@@ -64,10 +64,10 @@ class CourseSchedulingRequest(BaseModel):
     max_iterations: int = Field(default=20000, ge=100, le=100000)
     seed: Optional[int] = None
     candidate_runs: int = Field(
-        default=1,
-        ge=1,
-        le=1,
-        description="Exactly one schedule is generated per round.",
+        default=2,
+        ge=2,
+        le=2,
+        description="Exactly two schedules are generated per round.",
     )
     max_conflict_count: Optional[int] = Field(
         default=0,
@@ -393,7 +393,7 @@ def _candidate_sort_key(candidate: Dict[str, Any]) -> tuple:
 def _run_candidate_schedules(
     request: CourseSchedulingRequest,
     *,
-    max_retry_rounds: int = 4,
+    max_retry_rounds: int = 3,
     context: Optional[CourseWorkflowContext] = None,
 ) -> tuple[Dict[str, Any], List[Dict[str, Any]], int, bool]:
     candidates: List[Dict[str, Any]] = []
@@ -501,8 +501,8 @@ Rules:
   local context during handoff.
 - Extract banned blocks, forbidden course groups, aliases, weights, and acceptance criteria from
   the user's messages.
-- Do not extract candidate or retry counts. Runtime policy is fixed at one schedule per round with
-  four retry rounds.
+- Do not extract candidate or retry counts. Runtime policy is fixed at two schedules per round with
+  three retry rounds.
 - Extract acceptance criteria when present. Use max_conflict_count for conflict tolerance and
   min_satisfaction_rate for satisfaction-rate requirements.
 - Represent each banned-block rule as one block_bans item with a course and zero-based slots.
