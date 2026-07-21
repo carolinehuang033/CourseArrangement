@@ -388,7 +388,15 @@ body {
 
 #advanced_panel,
 #results_panel {
-  border-radius: 16px;
+  border-radius: 16px !important;
+  overflow: hidden;
+}
+
+#advanced_panel > button,
+#results_panel > button,
+#advanced_panel .label-wrap,
+#results_panel .label-wrap {
+  border-radius: 16px !important;
 }
 
 #advanced_panel:focus,
