@@ -399,7 +399,8 @@ def _run_candidate_schedules(
     context: Optional[CourseWorkflowContext] = None,
 ) -> tuple[Dict[str, Any], List[Dict[str, Any]], int, bool]:
     candidates: List[Dict[str, Any]] = []
-    used_seeds: set[int] = set()
+    initial_seed = secrets.randbelow(2**31)
+    continuation_schedule: Optional[Dict[str, int]] = None
     rounds_total = max_retry_rounds + 1
     accepted = False
     retry_rounds_used = 0
@@ -413,19 +414,22 @@ def _run_candidate_schedules(
         for candidate_index in range(request.candidate_runs):
             if context is not None and context.cancel_requested:
                 break
-            candidate_seed = secrets.randbelow(2**31)
-            while candidate_seed in used_seeds:
-                candidate_seed = secrets.randbelow(2**31)
-            used_seeds.add(candidate_seed)
+            candidate_seed = initial_seed if not candidates else None
 
             result = arrange_courses(
                 **_schedule_request_to_tool_kwargs(request, seed=candidate_seed),
+                initial_schedule=continuation_schedule,
                 cancel_check=(
                     None
                     if context is None
                     else lambda: context.cancel_requested
                 ),
             )
+            continuation_schedule = {
+                section: int(slot)
+                for slot, sections in result.get("schedule_by_slot", {}).items()
+                for section in sections
+            }
             candidate = {
                 "round": round_index + 1,
                 "candidate": candidate_index + 1,

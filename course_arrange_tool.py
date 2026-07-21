@@ -177,13 +177,28 @@ class Scheduler_Final:
             slots = [schedule.get(sec, -1) for sec in sections]
             print(f"   {'Accelerated DP Math HL 11':<40} | 禁止: [已放开] | 实际: {slots}")
 
-    def optimize_schedule(self) -> Dict[str, int]:
+    def optimize_schedule(
+        self,
+        initial_schedule: Optional[Dict[str, int]] = None,
+    ) -> Dict[str, int]:
         print("\n⚡ 开始优化 (最终均衡版 + 非线性惩罚机制)...")
 
         if self.cancel_check and self.cancel_check():
             raise RuntimeError("Scheduling was cancelled.")
         
-        best_schedule = self._initial_schedule()
+        if initial_schedule is None:
+            best_schedule = self._initial_schedule()
+        else:
+            best_schedule = {
+                section: int(initial_schedule[section])
+                for section in self.all_sections
+                if section in initial_schedule
+            }
+            if len(best_schedule) != len(self.all_sections):
+                missing_schedule = self._initial_schedule()
+                for section in self.all_sections:
+                    best_schedule.setdefault(section, missing_schedule[section])
+            best_schedule = self._fix_hard_constraints(best_schedule)
         best_cost, _ = self._evaluate_schedule_with_balance(best_schedule)
         
         print("\n初始方案评估中...")
@@ -908,6 +923,7 @@ def arrange_courses(
     include_diagnostics: bool = False,
     verbose: bool = False,
     cancel_check: Optional[Callable[[], bool]] = None,
+    initial_schedule: Optional[Dict[str, int]] = None,
 ) -> Dict[str, Any]:
     """OpenAI tool handler for generating a course timetable.
 
@@ -948,7 +964,7 @@ def arrange_courses(
     output_context = contextlib.nullcontext() if verbose else contextlib.redirect_stdout(log_buffer)
     with output_context:
         scheduler._clean_and_prepare_data(student_data, custom_sections, course_name_map=course_name_map)
-        optimal_schedule = scheduler.optimize_schedule()
+        optimal_schedule = scheduler.optimize_schedule(initial_schedule=initial_schedule)
 
     cost, details = scheduler._evaluate_schedule_with_balance(optimal_schedule)
     satisfaction_rate = (
