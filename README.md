@@ -41,3 +41,14 @@ Never commit `.env` or API keys. For Hugging Face Spaces, configure these values
 
 - Student selections: a student identifier column plus course columns
 - Section counts: `course` and `section_count` columns
+
+## Deployment
+
+The included `render.yaml` deploys the app with FastAPI and mounts Gradio at:
+
+```text
+/course-arrangement/
+```
+
+Set `OPENAI_API_KEY` as a Render secret. A custom domain can then serve the application at
+`https://your-domain.com/course-arrangement/`.
