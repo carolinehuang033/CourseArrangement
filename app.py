@@ -386,8 +386,28 @@ body {
   line-height: 1 !important;
 }
 
-#advanced_panel {
+#advanced_panel,
+#results_panel {
   border-radius: 16px;
+}
+
+#advanced_panel:focus,
+#advanced_panel:focus-visible,
+#advanced_panel:focus-within,
+#results_panel:focus,
+#results_panel:focus-visible,
+#results_panel:focus-within,
+#advanced_panel > button:focus,
+#advanced_panel > button:focus-visible,
+#results_panel > button:focus,
+#results_panel > button:focus-visible,
+#advanced_panel summary:focus,
+#advanced_panel summary:focus-visible,
+#results_panel summary:focus,
+#results_panel summary:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: #e5e7eb !important;
 }
 
 /* Gradio 6.x auto-wraps each Group/Row in a .styler div with a default
@@ -1542,7 +1562,7 @@ def build_app() -> gr.Blocks:
                     class_floor = gr.Number(value=12, precision=0, label="班级最小人数")
                     class_cap = gr.Number(value=30, precision=0, label="班级最大人数")
 
-            with gr.Accordion("结果详情", open=False):
+            with gr.Accordion("结果详情", open=False, elem_id="results_panel"):
                 summary = gr.Textbox(label="总结", lines=8)
                 schedule_table = gr.Dataframe(
                     headers=["slot", "section", "course"],
