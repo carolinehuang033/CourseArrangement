@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -186,6 +186,7 @@ class CourseWorkflowContext:
     parsed_spreadsheets: List[ParsedSpreadsheet]
     stage: str = "conversation"
     cancel_requested: bool = False
+    run_progress: List[Dict[str, Any]] = field(default_factory=list)
     request: Optional[CourseSchedulingRequest] = None
     result: Optional[Dict[str, Any]] = None
 
@@ -393,7 +394,7 @@ def _candidate_sort_key(candidate: Dict[str, Any]) -> tuple:
 def _run_candidate_schedules(
     request: CourseSchedulingRequest,
     *,
-    max_retry_rounds: int = 3,
+    max_retry_rounds: int = 7,
     context: Optional[CourseWorkflowContext] = None,
 ) -> tuple[Dict[str, Any], List[Dict[str, Any]], int, bool]:
     candidates: List[Dict[str, Any]] = []
@@ -432,6 +433,17 @@ def _run_candidate_schedules(
                 "result": result,
             }
             candidates.append(candidate)
+            if context is not None:
+                metrics = result.get("metrics", {})
+                context.run_progress.append(
+                    {
+                        "run": len(candidates),
+                        "round": round_index + 1,
+                        "candidate": candidate_index + 1,
+                        "satisfaction_rate": metrics.get("satisfaction_rate"),
+                        "conflict_count": metrics.get("conflict_count"),
+                    }
+                )
 
         if not candidates or (context is not None and context.cancel_requested):
             break
@@ -502,7 +514,7 @@ Rules:
 - Extract banned blocks, forbidden course groups, aliases, weights, and acceptance criteria from
   the user's messages.
 - Do not extract candidate or retry counts. Runtime policy is fixed at two schedules per round with
-  three retry rounds.
+  seven retry rounds.
 - Extract acceptance criteria when present. Use max_conflict_count for conflict tolerance and
   min_satisfaction_rate for satisfaction-rate requirements.
 - Represent each banned-block rule as one block_bans item with a course and zero-based slots.

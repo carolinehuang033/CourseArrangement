@@ -136,6 +136,24 @@ body {
   background: #e5e7eb;
 }
 
+.system-progress-results {
+  display: grid;
+  gap: 3px;
+  max-height: 180px;
+  margin-top: 8px;
+  overflow-y: auto;
+  color: #4b5563;
+  font-variant-numeric: tabular-nums;
+}
+
+.system-progress-result {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
 .system-progress-bar {
   position: absolute;
   inset: 0 auto 0 0;
@@ -850,6 +868,7 @@ def _system_progress_message(
     *,
     stage: str,
     done: bool = False,
+    run_progress: Optional[List[Dict[str, Any]]] = None,
 ) -> str:
     elapsed = max(0, int(elapsed_seconds))
     if done:
@@ -862,6 +881,28 @@ def _system_progress_message(
         meta = f"{elapsed} 秒"
         bar = '<div class="system-progress-track"><div class="system-progress-bar"></div></div>'
 
+    result_rows = ""
+    for item in run_progress or []:
+        satisfaction = item.get("satisfaction_rate")
+        satisfaction_text = (
+            "—"
+            if satisfaction is None
+            else f"{float(satisfaction):.2f}%"
+        )
+        conflicts = item.get("conflict_count")
+        conflict_text = "—" if conflicts is None else str(int(conflicts))
+        result_rows += (
+            '<div class="system-progress-result">'
+            f'<span>第 {int(item.get("run", 0))} 次</span>'
+            f'<span>满意度 {satisfaction_text} · 冲突 {conflict_text} 人</span>'
+            '</div>'
+        )
+    results = (
+        f'<div class="system-progress-results">{result_rows}</div>'
+        if result_rows
+        else ""
+    )
+
     return (
         '<div class="system-progress">'
         '<div class="system-progress-line">'
@@ -869,6 +910,7 @@ def _system_progress_message(
         f'<span class="system-progress-meta">{meta}</span>'
         '</div>'
         f'{bar}'
+        f'{results}'
         '</div>'
     )
 
@@ -1441,6 +1483,7 @@ def respond(
     worker.start()
     displayed_seconds = 0
     displayed_stage = workflow_context.stage
+    displayed_run_count = 0
     try:
         _set_status(
             history,
@@ -1451,18 +1494,23 @@ def respond(
             time.sleep(0.2)
             elapsed_seconds = int(time.monotonic() - started_at)
             current_stage = workflow_context.stage
+            current_progress = list(workflow_context.run_progress)
+            current_run_count = len(current_progress)
             if (
                 elapsed_seconds == displayed_seconds
                 and current_stage == displayed_stage
+                and current_run_count == displayed_run_count
             ):
                 continue
             displayed_seconds = elapsed_seconds
             displayed_stage = current_stage
+            displayed_run_count = current_run_count
             _set_status(
                 history,
                 _system_progress_message(
                     displayed_seconds,
                     stage=current_stage,
+                    run_progress=current_progress,
                 ),
             )
             yield _output(history, memory=memory)
@@ -1486,6 +1534,7 @@ def respond(
             time.monotonic() - started_at,
             stage=workflow_context.stage,
             done=True,
+            run_progress=list(workflow_context.run_progress),
         ),
     )
     yield _output(history, memory=memory)
