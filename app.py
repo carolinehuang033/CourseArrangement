@@ -824,7 +824,7 @@ def _summary(run_result: Any) -> str:
             run_result.schedule_summary,
             "",
             f"验收通过: {'是' if run_result.accepted else '否'}",
-            f"候选数量: {len(run_result.candidates)}",
+            f"排课执行次数: {len(run_result.candidates)}",
             f"重试轮数: {run_result.retry_rounds_used}",
             f"满意率: {metrics.get('satisfaction_rate')}%",
             f"冲突学生数: {metrics.get('conflict_count')}",
@@ -1388,6 +1388,7 @@ def respond(
         "min_students_per_section": int(class_floor),
         "max_students_per_section": int(class_cap),
         "max_iterations": int(max_iterations),
+        "candidate_runs": 1,
         "include_schedule": True,
         "include_section_loads": True,
     }
@@ -1623,7 +1624,7 @@ def build_app() -> gr.Blocks:
                 with gr.Row():
                     metrics = gr.JSON(label="Metrics")
                     structured_request = gr.JSON(label="结构化输入")
-                candidate_metrics = gr.JSON(label="候选结果")
+                candidate_metrics = gr.JSON(label="每轮结果")
 
             clear_button = gr.Button("清空对话", variant="secondary")
 

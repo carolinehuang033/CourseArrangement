@@ -64,10 +64,10 @@ class CourseSchedulingRequest(BaseModel):
     max_iterations: int = Field(default=20000, ge=100, le=100000)
     seed: Optional[int] = None
     candidate_runs: int = Field(
-        default=3,
-        ge=2,
-        le=5,
-        description="How many candidate schedules to generate per round.",
+        default=1,
+        ge=1,
+        le=1,
+        description="Exactly one schedule is generated per round.",
     )
     max_conflict_count: Optional[int] = Field(
         default=0,
@@ -173,7 +173,6 @@ class SchedulingIntent(BaseModel):
     course_aliases: List[CourseAlias] = Field(default_factory=list)
     cost_weights: CostWeights = Field(default_factory=CostWeights)
     max_iterations: int = Field(default=20000, ge=100, le=100000)
-    candidate_runs: int = Field(default=3, ge=2, le=5)
     max_conflict_count: Optional[int] = Field(default=0, ge=0)
     min_satisfaction_rate: Optional[float] = Field(default=None, ge=0, le=100)
     include_diagnostics: bool = False
@@ -500,9 +499,10 @@ Course Schedule Generator. The handoff payload must be one SchedulingIntent.
 Rules:
 - Do not include or reproduce student rosters or section counts; they are injected from trusted
   local context during handoff.
-- Extract banned blocks, forbidden course groups, aliases, weights, candidate settings, retry
-  settings, and acceptance criteria from the user's messages.
-- Choose candidate_runs between 2 and 5 from the user's request. If unspecified, use 3.
+- Extract banned blocks, forbidden course groups, aliases, weights, and acceptance criteria from
+  the user's messages.
+- Do not extract candidate or retry counts. Runtime policy is fixed at one schedule per round with
+  five retry rounds.
 - Extract acceptance criteria when present. Use max_conflict_count for conflict tolerance and
   min_satisfaction_rate for satisfaction-rate requirements.
 - Represent each banned-block rule as one block_bans item with a course and zero-based slots.
@@ -517,8 +517,8 @@ You are the Course Schedule Generator.
 
 The validated CourseSchedulingRequest is already stored in local workflow context.
 Call generate_course_schedule exactly once with no arguments. After the tool returns, do not call it again.
-Provide a concise operational summary: whether the best candidate met the acceptance criteria,
-how many candidates and retry rounds were used, satisfaction rate, conflict count, major load
+Provide a concise operational summary: whether the best run met the acceptance criteria,
+how many scheduling runs and retry rounds were used, satisfaction rate, conflict count, major load
 metrics, and where the schedule appears in the returned payload.
 """
 
