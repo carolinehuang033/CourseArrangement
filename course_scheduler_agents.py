@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+import secrets
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -398,7 +399,7 @@ def _run_candidate_schedules(
     context: Optional[CourseWorkflowContext] = None,
 ) -> tuple[Dict[str, Any], List[Dict[str, Any]], int, bool]:
     candidates: List[Dict[str, Any]] = []
-    base_seed = request.seed
+    used_seeds: set[int] = set()
     rounds_total = max_retry_rounds + 1
     accepted = False
     retry_rounds_used = 0
@@ -412,10 +413,10 @@ def _run_candidate_schedules(
         for candidate_index in range(request.candidate_runs):
             if context is not None and context.cancel_requested:
                 break
-            if base_seed is None:
-                candidate_seed = None
-            else:
-                candidate_seed = base_seed + round_index * request.candidate_runs + candidate_index
+            candidate_seed = secrets.randbelow(2**31)
+            while candidate_seed in used_seeds:
+                candidate_seed = secrets.randbelow(2**31)
+            used_seeds.add(candidate_seed)
 
             result = arrange_courses(
                 **_schedule_request_to_tool_kwargs(request, seed=candidate_seed),
@@ -546,7 +547,7 @@ CONVERSATION_INSTRUCTIONS = """
 - 从第一条用户消息开始，以专业、自然的方式回应排课需求。
 - 帮用户把自然语言排课需求逐步补全，而不是让用户面对技术表单。
 - 开场和补问时要覆盖完整排课需求：学生选课文件、每门课的开班数量、排课时段总数、
-  不能安排在同一时段的课程组、指定课程的禁排时段、每个班的人数限制，以及可选的随机种子。
+  不能安排在同一时段的课程组、指定课程的禁排时段，以及每个班的人数限制。
 - 如果信息不足，简短说明你已经理解了什么，并优先问最影响排课的缺失项；同一轮可以列出一个短清单。
 - 如果高级设置和用户文字冲突，明确指出冲突并问用户按哪个为准。
 - 如果文件缺失或格式不对，温和地告诉用户需要上传学生选课表。

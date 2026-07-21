@@ -48,7 +48,7 @@ WELCOME_MESSAGE = (
     "您好，欢迎使用智能排课系统。我将协助您核对排课需求，并在确认后生成课程安排。\n\n"
     "请先上传学生选课表，并提供以下信息：各课程的开班数量、排课时段总数、不可安排在同一时段的"
     "课程组合、指定课程的禁排时段，以及各班人数限制。高级设置的默认值为：排课时段数 5、"
-    "随机种子 42、班级最小人数 12、班级最大人数 30、最大迭代次数 20000。\n\n"
+    "班级最小人数 12、班级最大人数 30、最大迭代次数 20000。\n\n"
     "信息完整后，系统将汇总全部设置；请您核对并回复“确认运行”，随后正式开始排课。"
 )
 TYPING_MESSAGE = '<span class="typing-dots"><span></span><span></span><span></span></span>'
@@ -650,14 +650,12 @@ def _confirmation_message(
             if course and course.strip()
         }
     )
-    seed_text = "不指定" if seed is None else str(int(seed))
     return (
         "我已经拿到可以排课的信息了。运行前请你确认一下：\n\n"
         f"上传文件：{os.path.basename(file_path)}\n"
         f"学生数量：{len(parsed_file.student_courses)}\n"
         f"课程数量：{len(selected_courses)}\n"
         f"排课时段数：{int(slots)}\n"
-        f"随机种子：{seed_text}\n"
         f"班级最小人数：{int(class_floor)}\n"
         f"班级最大人数：{int(class_cap)}\n"
         f"最大迭代次数：{int(max_iterations)}\n\n"
@@ -1650,7 +1648,7 @@ def build_app() -> gr.Blocks:
             with gr.Accordion("高级设置", open=False, elem_id="advanced_panel"):
                 with gr.Row():
                     slots = gr.Slider(2, 12, value=5, step=1, label="排课时段数")
-                    seed = gr.Number(value=42, precision=0, label="随机种子")
+                    seed = gr.Number(value=None, precision=0, visible=False)
                     max_iterations = gr.Number(
                         value=20000,
                         precision=0,
