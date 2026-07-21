@@ -393,7 +393,7 @@ def _candidate_sort_key(candidate: Dict[str, Any]) -> tuple:
 def _run_candidate_schedules(
     request: CourseSchedulingRequest,
     *,
-    max_retry_rounds: int = 5,
+    max_retry_rounds: int = 4,
     context: Optional[CourseWorkflowContext] = None,
 ) -> tuple[Dict[str, Any], List[Dict[str, Any]], int, bool]:
     candidates: List[Dict[str, Any]] = []
@@ -502,7 +502,7 @@ Rules:
 - Extract banned blocks, forbidden course groups, aliases, weights, and acceptance criteria from
   the user's messages.
 - Do not extract candidate or retry counts. Runtime policy is fixed at one schedule per round with
-  five retry rounds.
+  four retry rounds.
 - Extract acceptance criteria when present. Use max_conflict_count for conflict tolerance and
   min_satisfaction_rate for satisfaction-rate requirements.
 - Represent each banned-block rule as one block_bans item with a course and zero-based slots.
