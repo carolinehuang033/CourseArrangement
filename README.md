@@ -41,5 +41,3 @@ Never commit `.env` or API keys. For Hugging Face Spaces, configure these values
 
 - Student selections: a student identifier column plus course columns
 - Section counts: `course` and `section_count` columns
-
-Sample inputs are available in `test_data/`.

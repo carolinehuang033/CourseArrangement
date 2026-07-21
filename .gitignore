@@ -7,8 +7,7 @@ __pycache__/
 .venv/
 venv/
 outputs/
+test_data/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-test_data/*_result.json
-test_data/*_report.json
